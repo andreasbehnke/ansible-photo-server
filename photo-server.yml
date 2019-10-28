@@ -1,0 +1,47 @@
+---
+
+  - hosts: photoserver
+    vars:
+
+      # ******************************************
+      # default variables of playbook
+      # change these variables in your inventory:
+      # ******************************************
+
+      photo_server_disk_mount_path: '/srv/photo/'
+      photo_server_by_year_suffix: 'photos_by_year'
+      photo_server_inbox_suffix: 'inbox'
+
+      # ******************************************
+      # variables required by roles, change these with care because
+      # they must match between different roles!
+      # ******************************************
+
+      photo_server_by_year_path: '{{photo_server_disk_mount_path}}{{photo_server_by_year_suffix}}'
+      photo_server_inbox_path: '{{photo_server_disk_mount_path}}{{photo_server_inbox_suffix}}'
+
+      # role fileserver
+
+      public_file_shares:
+      - { 
+          name: '{{photo_server_by_year_suffix}}', 
+          path: '{{photo_server_by_year_path}}'
+        }
+      - { 
+          name: '{{photo_server_inbox_suffix}}', 
+          path: '{{photo_server_inbox_path}}'
+        }
+
+      # role backup-slave
+
+      backup_user:
+        user: 'admin'
+        user_group: 'sambashare'
+      backup_sources:
+        - { 
+            # backup only sorted photos to reduce backup size
+            path: '{{photo_server_by_year_path}}',
+            rsync_opts: '-aRHv', 
+            user: 'admin', 
+            group: 'sambashare' 
+          }

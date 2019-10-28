@@ -1,0 +1,7 @@
+---
+ - name: remote-access
+   src: https://github.com/andreasbehnke/ansible-role-remote-access.git
+ - name: backup-slave
+   src: https://github.com/andreasbehnke/ansible-role-backup-slave
+ - name: fileserver
+   src: https://github.com/andreasbehnke/ansible-role-fileserver
