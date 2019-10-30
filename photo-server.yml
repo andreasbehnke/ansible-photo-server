@@ -1,22 +1,27 @@
 ---
 
-  - hosts: photoserver
+  - hosts: photo_server
     vars:
 
       # ******************************************
       # default variables of playbook
-      # change these variables in your inventory:
+      # override these variables in your inventory:
       # ******************************************
 
+      # Make sure /srv/photo/photos_by_year and /srv/photo/inbox reside on the same device, for making hard links possible!
+      # This way the files are kept in inbox folder and only a new hardlink is created for second location in /srv/photo/photos_by_year.
+      # Keeping the original file in inbox helps rsync not to fetch these files again from remote location.
       photo_server_disk_mount_path: '/srv/photo/'
       photo_server_by_year_suffix: 'photos_by_year'
       photo_server_inbox_suffix: 'inbox'
       photo_server_crawler_frequency_in_minutes: 5
 
       # ******************************************
-      # variables required by roles, change these with care because
-      # they must match between different roles!
-      # ******************************************
+      # variables required by roles
+      #
+      # Change variables with care below this line,
+      # because they must match between roles.
+      # \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
       photo_server_by_year_path: '{{photo_server_disk_mount_path}}{{photo_server_by_year_suffix}}'
       photo_server_inbox_path: '{{photo_server_disk_mount_path}}{{photo_server_inbox_suffix}}'
@@ -35,9 +40,6 @@
 
       # role backup-slave
 
-      backup_user:
-        user: 'admin'
-        user_group: 'sambashare'
       backup_sources:
         - { 
             # backup only path containing photos sorted by date (otherwise backup would contain dublicate photos)
@@ -49,8 +51,30 @@
       
       # role backup-master
 
-      backup_slave_group_name: 'photo-slave'
+      backup_user: 'admin'
+      backup_group: 'sambashare'
+      backup_slave_group_name: 'photo_slave'
       backup_slave_sources_name: 'photo_sources'
       backup_schedule:
-        - frequency_in_minutes: '{{photo_server_crawler_frequency_in_minutes}}'
-      backup_master_rsync_opts: "--include '*/' --include '*.jpg' --include '*.JPG' --include '*.jpeg' --include '*.JPEG' --include '*.mp4' --include '*.MP4' --exclude '*' --prune-empty-dirs"
+        frequency_in_minutes: '{{photo_server_crawler_frequency_in_minutes}}'
+      backup_master_rsync_opts: "-rtv --include '*/' --include '*.jpg' --include '*.JPG' --include '*.jpeg' --include '*.JPEG' --include '*.mp4' --include '*.MP4' --exclude '*' --prune-empty-dirs"
+      backup_device:
+        path: '{{photo_server_inbox_path}}'
+
+      # role photo-mover
+
+      photo_mover_user: 'admin'
+      photo_mover_group: 'sambashare'
+      photo_mover_sources:
+        - '{{photo_server_inbox_path}}'
+      photo_mover_target: '{{photo_server_by_year_path}}'
+      photo_mover:
+        frequency_in_minutes: '{{photo_server_crawler_frequency_in_minutes}}'
+
+
+    roles:
+      - remote-access
+      - fileserver
+      - backup-slave
+      - backup-master
+      - photo-mover
